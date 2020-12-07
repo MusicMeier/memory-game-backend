@@ -55,7 +55,7 @@ exports.seed = async knex => {
   },{
     id: 14,
     name: 'a',
-    image: "https://i.imgur.com/CaQhgRk.png"
+    image: "https://i.imgur.com/c4rOisf.png"
   },{
     id: 15,
     name: 'c',

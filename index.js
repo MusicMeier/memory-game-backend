@@ -58,7 +58,7 @@ app.post('/login', (request, response) => {
     })
     .first()
     .then(retrievedUser => {
-      if (!user.id) throw new Error('user does not exist')
+      if (!retrievedUser.id) throw new Error('user does not exist')
 
       return Promise.all([
         bcrypt.compare(user.password, retrievedUser.passowrd_hash),
