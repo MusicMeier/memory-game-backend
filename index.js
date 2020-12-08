@@ -13,8 +13,13 @@ const jwt = require('jsonwebtoken')
 app.use(bodyParser.json())
 app.use(cors())
 
+
 const { Model } = require('objection')
 Model.knex(database)
+
+class User extends Model {
+    static tableName = 'user'
+}
 
 class Note extends Model {
     static tableName = 'note'
@@ -27,8 +32,19 @@ app.get('/notes', (request, response) => {
     })
 })
 
+app.get('/users', (request, response) => {
+  User.query()
+    .then(user => {
+      response.json(user)
+    })
+    .catch( error => {
+      console.log(error.message)
+    })
+})
+
 app.post('/users', (request, response) => {
-  const { user } = request.body
+  const {user}  = request.body
+  console.log(user)
   bcrypt.hash(user.password, 12)
     .then(hashedPassword => {
       return database('user')
