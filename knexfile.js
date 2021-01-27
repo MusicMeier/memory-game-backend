@@ -4,8 +4,6 @@ module.exports = {
 
   development: {
     client: 'pg',
-    connection: {
-      filename: 'postgres:///notes'
+    connection: 'postgres:///users_memory_game'
     }
-  },
-};
+  };

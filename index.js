@@ -10,6 +10,7 @@ const bodyParser = require('body-parser')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 
+const dotenv = require('dotenv').config()
 app.use(bodyParser.json())
 app.use(cors())
 
@@ -18,7 +19,7 @@ const { Model } = require('objection')
 Model.knex(database)
 
 class User extends Model {
-    static tableName = 'user'
+    static tableName = 'users'
 }
 
 class Note extends Model {
@@ -34,8 +35,8 @@ app.get('/notes', (request, response) => {
 
 app.get('/users', (request, response) => {
   User.query()
-    .then(user => {
-      response.json(user)
+    .then(users => {
+      response.json(users)
     })
     .catch( error => {
       console.log(error.message)
@@ -43,16 +44,16 @@ app.get('/users', (request, response) => {
 })
 
 app.post('/users', (request, response) => {
-  const {user}  = request.body
-  console.log(user)
-  bcrypt.hash(user.password, 12)
+  const users  = request.body
+  console.log(users)
+  bcrypt.hash(users.password, 12)
     .then(hashedPassword => {
-      return database('user')
+      return database('users')
         .insert({
-          id: user.id,
-          username: user.username,
-          firstName: user.firstName,
-          lastName: user.lastName,
+          id: users.id,
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
           password_hash: hashedPassword
         }).returning('*')
     }).then(users => {
@@ -65,19 +66,21 @@ app.post('/users', (request, response) => {
 })
 
 app.post('/login', (request, response) => {
-  const { user } = request.body
+  const users  = request.body
+  console.log(users)
 
-  database('user')
+  database('users')
     .select()
     .where({ 
-      username: user.username 
+      username: users.username 
     })
     .first()
     .then(retrievedUser => {
+      console.log(retrievedUser)
       if (!retrievedUser.id) throw new Error('user does not exist')
 
       return Promise.all([
-        bcrypt.compare(user.password, retrievedUser.password_hash),
+        bcrypt.compare(users.password, retrievedUser.password_hash),
         Promise.resolve(retrievedUser)
       ])
     }).then(results => {
@@ -86,23 +89,20 @@ app.post('/login', (request, response) => {
 
       if (!arePasswordsTheSame) throw new Error('password incorrect')
 
-      const payload = {username: user.username}
-      const secret = "QUIET!"
+      const payload = {username: users.username}
+      const secret = process.env.SECRET
 
-      jwt.sign(payload, secret, (error, token) => {
-        if (error) throw new Error("Signing in didn't work")
+      let token = jwt.sign(payload, secret)
+      console.log(token)
 
-        response.json({ token })
-      })
-
-      response.json({user})
+      response.json({users, token})
     }).catch(error => {
       response.json({ error: error.message})
     })
 })
 
 app.get("/secret-route", authenticate, (request, response) => {
-  response.json({ message: `${request.user.username} found me lucky charms!`})
+  response.json({ message: `${request.users.username} found me lucky charms!`})
 })
 
 function authenticate(request, response, next){ 
@@ -112,12 +112,12 @@ function authenticate(request, response, next){
   const secret = "QUIET!"
   jwt.compare(token, secret, (error, payload) => {
       if (error) response.json({error: error.message})
-    database(user)
+    database(users)
       .select()
-      .where({usename: user.username})
+      .where({username: users.username})
       .first()
-      .then(user => {
-        request.user = user
+      .then(users => {
+        request.users = users
         next()
       }).catch(error => {
         response.json({error: error.message})
